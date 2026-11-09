@@ -8,7 +8,7 @@
  * Licentie: MIT
  */
 
-const GBC_VERSION = '1.0.1';
+const GBC_VERSION = '1.0.2';
 
 const GBC_PALETTE = ['#FFB899', '#B9A8FF', '#8FE3B8', '#8EC5FF', '#FFE08A', '#FF9FBF'];
 
@@ -55,7 +55,9 @@ function gbcClamp(v, a, b) {
 /*  Lucht (weer + dagdeel)                                             */
 /* ------------------------------------------------------------------ */
 
-function gbcSkyHtml(weer, phase) {
+// idx = nummer van het raam, zodat elk raam een ander stukje van dezelfde lucht toont.
+// showOrb = alleen in één raam een zon of maan.
+function gbcSkyHtml(weer, phase, idx = 0, showOrb = true) {
   const clear = weer === 'helder' || weer === 'halfbewolkt';
   const grim = weer === 'regen' || weer === 'onweer';
   const bgs = {
@@ -71,11 +73,11 @@ function gbcSkyHtml(weer, phase) {
   const nStars = phase === 'nacht' ? (weer === 'helder' ? 7 : weer === 'halfbewolkt' ? 4 : 0) : 0;
   starPts.slice(0, nStars).forEach((p, k) => {
     const s = k % 2 ? 2 : 3;
-    html += '<span class="star" style="left:' + p[0] + '%;top:' + p[1] + 'px;width:' + s + 'px;height:' + s + 'px;opacity:' + (0.5 + (k % 3) * 0.15) + '"></span>';
+    html += '<span class="star" style="left:' + ((p[0] + idx * 29) % 92) + '%;top:' + p[1] + 'px;width:' + s + 'px;height:' + s + 'px;opacity:' + (0.5 + (k % 3) * 0.15) + '"></span>';
   });
 
   // zon / maan
-  if (clear) {
+  if (clear && showOrb) {
     if (phase === 'dag') html += '<span class="orb sun"></span>';
     else if (phase === 'schemer') html += '<span class="orb sunset"></span>';
     else html += '<span class="orb moon"></span>';
@@ -93,7 +95,8 @@ function gbcSkyHtml(weer, phase) {
   };
   const fill = phase === 'nacht' ? '#3A4358' : phase === 'schemer' ? '#E7C3C0' : weer === 'onweer' ? '#6B7587' : weer === 'regen' ? '#97A3B2' : weer === 'bewolkt' ? '#E4E9EE' : '#FFFFFF';
   (sets[weer] || []).forEach((c, k) => {
-    html += '<span class="cloud" style="top:' + c[0] + 'px;left:' + c[1] + '%;width:' + c[2] + '%;animation-duration:' + (6 + k) + 's">' +
+    const left = idx ? ((c[1] + 15 + idx * 43) % 100) - 15 : c[1];
+    html += '<span class="cloud" style="top:' + c[0] + 'px;left:' + left + '%;width:' + c[2] + '%;animation-duration:' + (6 + k) + 's">' +
       '<svg viewBox="0 0 62 44"><path d="M48 42H16a13 13 0 1 1 3-25.6A16 16 0 0 1 49 18a12 12 0 0 1-1 24z" fill="' + fill + '"/></svg></span>';
   });
 
@@ -102,7 +105,7 @@ function gbcSkyHtml(weer, phase) {
   }
   if (grim) {
     for (let k = 0; k < 16; k++) {
-      html += '<span class="drop" style="left:' + ((k * 37) % 100) + '%;animation-delay:-' + ((k * 0.17) % 0.8).toFixed(2) + 's"></span>';
+      html += '<span class="drop" style="left:' + ((k * 37 + idx * 13) % 100) + '%;animation-delay:-' + ((k * 0.17) % 0.8).toFixed(2) + 's"></span>';
     }
   }
   if (weer === 'sneeuw') {
@@ -615,8 +618,13 @@ class GlowBlindsCard extends HTMLElement {
     const key = c.sky === false ? 'off|' + phase : weer + '|' + phase;
     if (key !== this._skyKey) {
       this._skyKey = key;
-      const html = c.sky === false ? gbcSkyHtml('helder', 'nacht').split('<span')[0] : gbcSkyHtml(weer, phase);
-      this.shadowRoot.querySelectorAll('.sky').forEach((s) => { s.innerHTML = html; });
+      // zon/maan maar één keer: in het meest rechtse raam van de bovenste rij
+      const orbIdx = Math.min(this._cols(), c.blinds.length) - 1;
+      this.shadowRoot.querySelectorAll('.sky').forEach((s, i) => {
+        s.innerHTML = c.sky === false
+          ? gbcSkyHtml('helder', 'nacht').split('<span')[0]
+          : gbcSkyHtml(weer, phase, i, i === orbIdx);
+      });
     }
 
     let open = 0;
