@@ -8,7 +8,7 @@
  * Licentie: MIT
  */
 
-const GBC_VERSION = '1.0.0';
+const GBC_VERSION = '1.0.1';
 
 const GBC_PALETTE = ['#FFB899', '#B9A8FF', '#8FE3B8', '#8EC5FF', '#FFE08A', '#FF9FBF'];
 
@@ -226,8 +226,11 @@ const GBC_STYLE = `
     height: 46px; border-radius: 16px; font: inherit; font-size: 15px; font-weight: 800;
     display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
     border: 1px solid rgba(255, 255, 255, 0.12); color: inherit; background: rgba(255, 255, 255, 0.07);
-    transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+    transition: background 0.12s, box-shadow 0.12s, color 0.12s, transform 0.08s;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none;
   }
+  .stop:active, .stop.pressed { transform: scale(0.95); }
+  .round { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   .stop svg { width: 14px; height: 14px; fill: currentColor; }
   .stop.active { border-color: transparent; color: #1C1730; background: var(--c); box-shadow: 0 0 var(--gbc-glow, 22px) rgba(var(--rgb), 0.7); }
   .stop[hidden] { display: none; }
@@ -252,6 +255,19 @@ class GlowBlindsCard extends HTMLElement {
     this._skyKey = null;
     this._built = false;
     this._keyTimers = {};
+    this._moves = {};      // bewegingen gestart via de kaart
+    this._last = {};       // laatst geziene positie + tijdstip van laatste verandering
+    this._stoppedAt = {};  // tijdstip van laatste druk op stop
+    this._tick = null;
+  }
+
+  connectedCallback() {
+    if (this._hass && this._built) this._update();
+  }
+
+  disconnectedCallback() {
+    clearInterval(this._tick);
+    this._tick = null;
   }
 
   static getConfigElement() {
@@ -292,6 +308,9 @@ class GlowBlindsCard extends HTMLElement {
       blinds,
     };
     this._targets = {};
+    this._moves = {};
+    this._last = {};
+    this._stoppedAt = {};
     this._built = false;
     this._skyKey = null;
     if (this._hass) {
@@ -383,7 +402,18 @@ class GlowBlindsCard extends HTMLElement {
 
     this.shadowRoot.querySelectorAll('.win').forEach((win) => this._bindWindow(win));
     this.shadowRoot.querySelectorAll('.stop').forEach((btn) => {
-      btn.addEventListener('click', () => this._stop(parseInt(btn.dataset.i, 10)));
+      const i = parseInt(btn.dataset.i, 10);
+      // meteen reageren bij aanraken, niet pas bij loslaten
+      btn.addEventListener('pointerdown', (e) => {
+        if (e.button !== undefined && e.button !== 0) return;
+        btn._firedAt = Date.now();
+        this._stop(i);
+      });
+      // toetsenbord / fallback, zonder dubbel te versturen
+      btn.addEventListener('click', () => {
+        if (btn._firedAt && Date.now() - btn._firedAt < 800) return;
+        this._stop(i);
+      });
     });
     const ao = this.shadowRoot.querySelector('.all-open');
     const ac = this.shadowRoot.querySelector('.all-close');
@@ -484,14 +514,55 @@ class GlowBlindsCard extends HTMLElement {
       this._targets[i].pos = pos >= 50 ? 100 : 0;
       this._call(pos >= 50 ? 'open_cover' : 'close_cover', { entity_id: b.entity });
     }
+    this._startMove(i, this._targets[i].pos);
     this._updateBlind(i);
+  }
+
+  // Onthoud dat er een beweging loopt. Veel motoren (o.a. Zigbee) melden geen
+  // "opening/closing" of geven de eindpositie meteen door; daarom schatten we
+  // hoelang de beweging duurt op basis van de looptijd van het gordijn.
+  _startMove(i, target) {
+    const b = this._config.blinds[i];
+    const from = this._getPos(i) ?? 0;
+    const travel = Number(b.travel_time || this._config.travel_time || 30);
+    const est = Math.max(3000, (travel * 1000 * Math.abs(target - from)) / 100 + 1500);
+    const now = Date.now();
+    this._moves[i] = { start: now, until: now + est, sawMotion: false };
+    delete this._stoppedAt[i];
+    this._ensureTick();
   }
 
   _stop(i) {
     const b = this._config.blinds[i];
     delete this._targets[i];
-    this._call('stop_cover', { entity_id: b.entity });
+    delete this._moves[i];
+    this._stoppedAt[i] = Date.now();
+    const btn = this.shadowRoot.querySelector('.stop[data-i="' + i + '"]');
+    if (btn) {
+      btn.classList.add('pressed');
+      setTimeout(() => btn.classList.remove('pressed'), 150);
+    }
     this._updateBlind(i);
+    this._call('stop_cover', { entity_id: b.entity });
+    this._ensureTick();
+  }
+
+  // Ververst de kaart regelmatig zolang er iets beweegt, ook als Home
+  // Assistant even geen nieuwe status doorstuurt.
+  _ensureTick() {
+    if (this._tick) return;
+    this._tick = setInterval(() => {
+      if (!this._hass || !this._built) return;
+      const now = Date.now();
+      const busy = Object.keys(this._moves).length > 0 ||
+        Object.values(this._last).some((l) => now - l.at < 3000) ||
+        Object.values(this._stoppedAt).some((t) => now - t < 3000);
+      this._config.blinds.forEach((_, i) => this._updateBlind(i));
+      if (!busy) {
+        clearInterval(this._tick);
+        this._tick = null;
+      }
+    }, 300);
   }
 
   _all(service) {
@@ -504,6 +575,7 @@ class GlowBlindsCard extends HTMLElement {
         this._call(service === 'open_cover' ? 'close_cover' : 'open_cover', { entity_id: b.entity });
       }
       this._targets[i] = { pos, t: Date.now() };
+      this._startMove(i, pos);
     });
     const normal = this._config.blinds.filter((b) => !b.invert).map((b) => b.entity);
     if (normal.length) this._call(service, { entity_id: normal });
@@ -592,19 +664,45 @@ class GlowBlindsCard extends HTMLElement {
     const pos = this._getPos(i) ?? 0;
     const feat = st.attributes.supported_features || 0;
 
-    // doel opruimen als het bereikt is of te oud
+    const now = Date.now();
+    const motorState = st.state === 'opening' || st.state === 'closing';
+
+    // positieveranderingen bijhouden: een veranderende positie = beweging,
+    // ook als de motor geen "opening/closing" meldt
+    let last = this._last[i];
+    if (!last) {
+      last = this._last[i] = { pos, at: 0 };
+    } else if (last.pos !== pos) {
+      last.pos = pos;
+      last.at = now;
+      this._ensureTick();
+    }
+    if (motorState) this._ensureTick();
+
+    // beweging die via de kaart gestart is
+    const mv = this._moves[i];
+    if (mv) {
+      if (motorState) mv.sawMotion = true;
+      const tgtNow = this._targets[i];
+      const reached = tgtNow && Math.abs(tgtNow.pos - pos) <= 1 && now - last.at > 1500;
+      if (now > mv.until || (mv.sawMotion && !motorState && now - last.at > 1000) || reached) {
+        delete this._moves[i];
+      }
+    }
+
+    // doel (stippellijn) opruimen als het bereikt is of de beweging voorbij is
     const tgt = this._targets[i];
     if (tgt) {
-      const age = Date.now() - tgt.t;
-      const motorIdle = st.state !== 'opening' && st.state !== 'closing';
-      if (Math.abs(tgt.pos - pos) <= 1 || age > 90000 || (motorIdle && age > 8000)) {
+      const age = now - tgt.t;
+      if (Math.abs(tgt.pos - pos) <= 1 || age > 180000 || (!this._moves[i] && !motorState && age > 2000)) {
         delete this._targets[i];
       }
     }
 
     const dragging = this._drag && this._drag.i === i;
     const target = dragging ? this._drag.pos : (this._targets[i] ? this._targets[i].pos : null);
-    const moving = st.state === 'opening' || st.state === 'closing' || (target !== null && !dragging);
+    const justStopped = this._stoppedAt[i] && now - this._stoppedAt[i] < 2500;
+    const moving = !dragging && !justStopped && (motorState || now - last.at < 2500 || !!this._moves[i]);
 
     win.style.setProperty('--closed', String((100 - pos) / 100));
     if (target !== null) win.style.setProperty('--gclosed', String((100 - target) / 100));
@@ -618,7 +716,9 @@ class GlowBlindsCard extends HTMLElement {
     if (dragging) status = 'naar ' + target + '%';
     else if (st.state === 'opening') status = 'gaat open…';
     else if (st.state === 'closing') status = 'gaat dicht…';
+    else if (justStopped) status = 'gestopt';
     else if (target !== null) status = 'naar ' + target + '%';
+    else if (moving) status = 'beweegt…';
     else if (pos >= 100) status = 'Open';
     else if (pos <= 0) status = 'Dicht';
     else status = 'Half open';
@@ -651,6 +751,7 @@ const GBC_LABELS = {
   entity: 'Rolgordijn',
   name: 'Naam (optioneel)',
   invert: 'Positie omkeren (0 = open)',
+  travel_time: 'Looptijd van open tot dicht (seconden)',
 };
 
 const GBC_MAIN_SCHEMA = [
@@ -686,6 +787,7 @@ const GBC_MAIN_SCHEMA = [
 const GBC_BLIND_SCHEMA = [
   { name: 'entity', selector: { entity: { domain: 'cover' } } },
   { name: 'name', selector: { text: {} } },
+  { name: 'travel_time', selector: { number: { min: 3, max: 300, mode: 'box', unit_of_measurement: 's' } } },
   { name: 'invert', selector: { boolean: {} } },
 ];
 
@@ -807,6 +909,7 @@ class GlowBlindsCardEditor extends HTMLElement {
         const v = { ...e.detail.value };
         if (!v.name) delete v.name;
         if (!v.invert) delete v.invert;
+        if (!v.travel_time) delete v.travel_time;
         const blinds = this._config.blinds.slice();
         blinds[i] = { ...v, color: blinds[i].color };
         this._emit({ ...this._config, blinds });
