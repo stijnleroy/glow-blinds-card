@@ -8,7 +8,7 @@
  * Licentie: MIT
  */
 
-const GBC_VERSION = '1.0.3';
+const GBC_VERSION = '1.1.0';
 
 const GBC_PALETTE = ['#FFB899', '#B9A8FF', '#8FE3B8', '#8EC5FF', '#FFE08A', '#FF9FBF'];
 
@@ -30,10 +30,162 @@ const GBC_WEATHER = {
   'hail': 'sneeuw',
 };
 
-const GBC_WEATHER_LABEL = {
-  helder: 'Helder', halfbewolkt: 'Halfbewolkt', bewolkt: 'Bewolkt',
-  regen: 'Regen', onweer: 'Onweer', sneeuw: 'Sneeuw', mist: 'Mist',
+/* ------------------------------------------------------------------ */
+/*  Vertalingen                                                        */
+/* ------------------------------------------------------------------ */
+
+const GBC_LANG_NAMES = {
+  nl: 'Nederlands', en: 'English', fr: 'Français', de: 'Deutsch', es: 'Español', it: 'Italiano',
 };
+
+const GBC_I18N = {
+  nl: {
+    title: 'Rolgordijnen', open_all: 'Alles open', close_all: 'Alles dicht',
+    hint: 'Sleep in een raam om het gordijn te verplaatsen', stop: 'Stop',
+    n_open_one: '{n} open', n_open: '{n} open',
+    dag: 'dag', schemer: 'schemer', nacht: 'nacht',
+    helder: 'Helder', halfbewolkt: 'Halfbewolkt', bewolkt: 'Bewolkt', regen: 'Regen', onweer: 'Onweer', sneeuw: 'Sneeuw', mist: 'Mist',
+    to: 'naar {p}%', opening: 'gaat open…', closing: 'gaat dicht…', stopped: 'gestopt', moving: 'beweegt…',
+    open: 'Open', closed: 'Dicht', half: 'Half open',
+    unavailable: 'Niet beschikbaar', not_found: 'Entiteit niet gevonden',
+    aria_unavailable: '{name}, niet beschikbaar', aria_pos: '{name}, {p} procent open', aria_stop: 'Stop {name}',
+    err_no_blinds: 'Voeg minstens één rolgordijn toe onder "blinds".', err_no_entity: 'Rolgordijn {n} heeft geen "entity".',
+    description: 'Rolgordijnen als verticale ramen: slepen, stop, live positie en een lucht die het weer volgt.',
+    l_title: 'Titel', l_weather: 'Weer-entiteit (voor de lucht)', l_sun: 'Zon-entiteit (dag/schemer/nacht)',
+    l_glow: 'Sterkte van de gloed', l_columns: 'Kolommen (leeg = automatisch)', l_height: 'Hoogte van de ramen in px (leeg = automatisch)',
+    l_background: 'Achtergrond', l_show_all_buttons: 'Knoppen "alles open/dicht" tonen', l_show_hint: 'Uitleg onderaan tonen',
+    l_sky: 'Lucht met weer tonen', l_language: 'Taal', l_entity: 'Rolgordijn', l_name: 'Naam (optioneel)',
+    l_invert: 'Positie omkeren (0 = open)', l_travel_time: 'Looptijd van open tot dicht (seconden)', l_fabric: 'Soort stof',
+    bg_dark: 'Donker met gloed', bg_theme: 'Thema van je dashboard',
+    fab_dimout: 'Deels verduisterend', fab_blackout: 'Volledig verduisterend',
+    lang_auto: 'Automatisch (taal van Home Assistant)',
+    ed_blind: 'Gordijn {n}', ed_up: 'Omhoog', ed_down: 'Omlaag', ed_delete: 'Verwijderen', ed_color: 'Eigen kleur', ed_add: '+ Rolgordijn toevoegen',
+  },
+  en: {
+    title: 'Blinds', open_all: 'Open all', close_all: 'Close all',
+    hint: 'Drag inside a window to move the blind', stop: 'Stop',
+    n_open_one: '{n} open', n_open: '{n} open',
+    dag: 'day', schemer: 'twilight', nacht: 'night',
+    helder: 'Clear', halfbewolkt: 'Partly cloudy', bewolkt: 'Cloudy', regen: 'Rain', onweer: 'Thunderstorm', sneeuw: 'Snow', mist: 'Fog',
+    to: 'to {p}%', opening: 'opening…', closing: 'closing…', stopped: 'stopped', moving: 'moving…',
+    open: 'Open', closed: 'Closed', half: 'Partly open',
+    unavailable: 'Unavailable', not_found: 'Entity not found',
+    aria_unavailable: '{name}, unavailable', aria_pos: '{name}, {p} percent open', aria_stop: 'Stop {name}',
+    err_no_blinds: 'Add at least one blind under "blinds".', err_no_entity: 'Blind {n} has no "entity".',
+    description: 'Roller blinds as vertical windows: drag, stop, live position and a sky that follows the weather.',
+    l_title: 'Title', l_weather: 'Weather entity (for the sky)', l_sun: 'Sun entity (day/twilight/night)',
+    l_glow: 'Glow strength', l_columns: 'Columns (empty = automatic)', l_height: 'Window height in px (empty = automatic)',
+    l_background: 'Background', l_show_all_buttons: 'Show "open/close all" buttons', l_show_hint: 'Show hint at the bottom',
+    l_sky: 'Show sky with weather', l_language: 'Language', l_entity: 'Blind', l_name: 'Name (optional)',
+    l_invert: 'Invert position (0 = open)', l_travel_time: 'Travel time from open to closed (seconds)', l_fabric: 'Fabric type',
+    bg_dark: 'Dark with glow', bg_theme: 'Dashboard theme',
+    fab_dimout: 'Dimout (partly darkening)', fab_blackout: 'Blackout (fully darkening)',
+    lang_auto: 'Automatic (Home Assistant language)',
+    ed_blind: 'Blind {n}', ed_up: 'Move up', ed_down: 'Move down', ed_delete: 'Remove', ed_color: 'Custom color', ed_add: '+ Add blind',
+  },
+  fr: {
+    title: 'Stores', open_all: 'Tout ouvrir', close_all: 'Tout fermer',
+    hint: 'Faites glisser dans une fenêtre pour déplacer le store', stop: 'Stop',
+    n_open_one: '{n} ouvert', n_open: '{n} ouverts',
+    dag: 'jour', schemer: 'crépuscule', nacht: 'nuit',
+    helder: 'Dégagé', halfbewolkt: 'Partiellement nuageux', bewolkt: 'Nuageux', regen: 'Pluie', onweer: 'Orage', sneeuw: 'Neige', mist: 'Brouillard',
+    to: 'vers {p}%', opening: 'ouverture…', closing: 'fermeture…', stopped: 'arrêté', moving: 'en mouvement…',
+    open: 'Ouvert', closed: 'Fermé', half: 'Entrouvert',
+    unavailable: 'Indisponible', not_found: 'Entité introuvable',
+    aria_unavailable: '{name}, indisponible', aria_pos: '{name}, ouvert à {p} pour cent', aria_stop: 'Arrêter {name}',
+    err_no_blinds: 'Ajoutez au moins un store sous "blinds".', err_no_entity: 'Le store {n} n\'a pas d\'"entity".',
+    description: 'Des stores en fenêtres verticales : glisser, arrêter, position en direct et un ciel qui suit la météo.',
+    l_title: 'Titre', l_weather: 'Entité météo (pour le ciel)', l_sun: 'Entité soleil (jour/crépuscule/nuit)',
+    l_glow: 'Intensité de la lueur', l_columns: 'Colonnes (vide = automatique)', l_height: 'Hauteur des fenêtres en px (vide = automatique)',
+    l_background: 'Arrière-plan', l_show_all_buttons: 'Afficher les boutons « tout ouvrir/fermer »', l_show_hint: 'Afficher l\'aide en bas',
+    l_sky: 'Afficher le ciel avec la météo', l_language: 'Langue', l_entity: 'Store', l_name: 'Nom (facultatif)',
+    l_invert: 'Inverser la position (0 = ouvert)', l_travel_time: 'Durée de l\'ouverture à la fermeture (secondes)', l_fabric: 'Type de tissu',
+    bg_dark: 'Sombre avec lueur', bg_theme: 'Thème du tableau de bord',
+    fab_dimout: 'Tamisant (partiellement occultant)', fab_blackout: 'Occultant (totalement)',
+    lang_auto: 'Automatique (langue de Home Assistant)',
+    ed_blind: 'Store {n}', ed_up: 'Monter', ed_down: 'Descendre', ed_delete: 'Supprimer', ed_color: 'Couleur personnalisée', ed_add: '+ Ajouter un store',
+  },
+  de: {
+    title: 'Rollos', open_all: 'Alle öffnen', close_all: 'Alle schließen',
+    hint: 'Im Fenster ziehen, um das Rollo zu bewegen', stop: 'Stopp',
+    n_open_one: '{n} offen', n_open: '{n} offen',
+    dag: 'Tag', schemer: 'Dämmerung', nacht: 'Nacht',
+    helder: 'Klar', halfbewolkt: 'Teilweise bewölkt', bewolkt: 'Bewölkt', regen: 'Regen', onweer: 'Gewitter', sneeuw: 'Schnee', mist: 'Nebel',
+    to: 'auf {p}%', opening: 'öffnet…', closing: 'schließt…', stopped: 'gestoppt', moving: 'bewegt sich…',
+    open: 'Offen', closed: 'Geschlossen', half: 'Teilweise offen',
+    unavailable: 'Nicht verfügbar', not_found: 'Entität nicht gefunden',
+    aria_unavailable: '{name}, nicht verfügbar', aria_pos: '{name}, {p} Prozent offen', aria_stop: '{name} stoppen',
+    err_no_blinds: 'Füge unter "blinds" mindestens ein Rollo hinzu.', err_no_entity: 'Rollo {n} hat keine "entity".',
+    description: 'Rollos als senkrechte Fenster: ziehen, stoppen, Live-Position und ein Himmel, der dem Wetter folgt.',
+    l_title: 'Titel', l_weather: 'Wetter-Entität (für den Himmel)', l_sun: 'Sonnen-Entität (Tag/Dämmerung/Nacht)',
+    l_glow: 'Leuchtstärke', l_columns: 'Spalten (leer = automatisch)', l_height: 'Fensterhöhe in px (leer = automatisch)',
+    l_background: 'Hintergrund', l_show_all_buttons: 'Schaltflächen „Alle öffnen/schließen“ anzeigen', l_show_hint: 'Hinweis unten anzeigen',
+    l_sky: 'Himmel mit Wetter anzeigen', l_language: 'Sprache', l_entity: 'Rollo', l_name: 'Name (optional)',
+    l_invert: 'Position umkehren (0 = offen)', l_travel_time: 'Laufzeit von offen bis geschlossen (Sekunden)', l_fabric: 'Stoffart',
+    bg_dark: 'Dunkel mit Leuchten', bg_theme: 'Dashboard-Design',
+    fab_dimout: 'Teilweise verdunkelnd', fab_blackout: 'Vollständig verdunkelnd',
+    lang_auto: 'Automatisch (Sprache von Home Assistant)',
+    ed_blind: 'Rollo {n}', ed_up: 'Nach oben', ed_down: 'Nach unten', ed_delete: 'Entfernen', ed_color: 'Eigene Farbe', ed_add: '+ Rollo hinzufügen',
+  },
+  es: {
+    title: 'Estores', open_all: 'Abrir todo', close_all: 'Cerrar todo',
+    hint: 'Arrastra dentro de una ventana para mover el estor', stop: 'Parar',
+    n_open_one: '{n} abierto', n_open: '{n} abiertos',
+    dag: 'día', schemer: 'crepúsculo', nacht: 'noche',
+    helder: 'Despejado', halfbewolkt: 'Parcialmente nublado', bewolkt: 'Nublado', regen: 'Lluvia', onweer: 'Tormenta', sneeuw: 'Nieve', mist: 'Niebla',
+    to: 'a {p}%', opening: 'abriendo…', closing: 'cerrando…', stopped: 'detenido', moving: 'en movimiento…',
+    open: 'Abierto', closed: 'Cerrado', half: 'Entreabierto',
+    unavailable: 'No disponible', not_found: 'Entidad no encontrada',
+    aria_unavailable: '{name}, no disponible', aria_pos: '{name}, abierto al {p} por ciento', aria_stop: 'Parar {name}',
+    err_no_blinds: 'Añade al menos un estor en "blinds".', err_no_entity: 'El estor {n} no tiene "entity".',
+    description: 'Estores como ventanas verticales: arrastrar, parar, posición en directo y un cielo que sigue el tiempo.',
+    l_title: 'Título', l_weather: 'Entidad del tiempo (para el cielo)', l_sun: 'Entidad del sol (día/crepúsculo/noche)',
+    l_glow: 'Intensidad del brillo', l_columns: 'Columnas (vacío = automático)', l_height: 'Altura de las ventanas en px (vacío = automático)',
+    l_background: 'Fondo', l_show_all_buttons: 'Mostrar botones «abrir/cerrar todo»', l_show_hint: 'Mostrar ayuda abajo',
+    l_sky: 'Mostrar cielo con el tiempo', l_language: 'Idioma', l_entity: 'Estor', l_name: 'Nombre (opcional)',
+    l_invert: 'Invertir posición (0 = abierto)', l_travel_time: 'Tiempo de recorrido de abierto a cerrado (segundos)', l_fabric: 'Tipo de tejido',
+    bg_dark: 'Oscuro con brillo', bg_theme: 'Tema del panel',
+    fab_dimout: 'Traslúcido (oscurece en parte)', fab_blackout: 'Opaco (oscurece por completo)',
+    lang_auto: 'Automático (idioma de Home Assistant)',
+    ed_blind: 'Estor {n}', ed_up: 'Subir', ed_down: 'Bajar', ed_delete: 'Eliminar', ed_color: 'Color personalizado', ed_add: '+ Añadir estor',
+  },
+  it: {
+    title: 'Tende', open_all: 'Apri tutto', close_all: 'Chiudi tutto',
+    hint: 'Trascina in una finestra per spostare la tenda', stop: 'Stop',
+    n_open_one: '{n} aperta', n_open: '{n} aperte',
+    dag: 'giorno', schemer: 'crepuscolo', nacht: 'notte',
+    helder: 'Sereno', halfbewolkt: 'Parzialmente nuvoloso', bewolkt: 'Nuvoloso', regen: 'Pioggia', onweer: 'Temporale', sneeuw: 'Neve', mist: 'Nebbia',
+    to: 'a {p}%', opening: 'in apertura…', closing: 'in chiusura…', stopped: 'fermata', moving: 'in movimento…',
+    open: 'Aperta', closed: 'Chiusa', half: 'Socchiusa',
+    unavailable: 'Non disponibile', not_found: 'Entità non trovata',
+    aria_unavailable: '{name}, non disponibile', aria_pos: '{name}, aperta al {p} per cento', aria_stop: 'Ferma {name}',
+    err_no_blinds: 'Aggiungi almeno una tenda in "blinds".', err_no_entity: 'La tenda {n} non ha "entity".',
+    description: 'Tende come finestre verticali: trascina, ferma, posizione in tempo reale e un cielo che segue il meteo.',
+    l_title: 'Titolo', l_weather: 'Entità meteo (per il cielo)', l_sun: 'Entità sole (giorno/crepuscolo/notte)',
+    l_glow: 'Intensità del bagliore', l_columns: 'Colonne (vuoto = automatico)', l_height: 'Altezza delle finestre in px (vuoto = automatico)',
+    l_background: 'Sfondo', l_show_all_buttons: 'Mostra i pulsanti «apri/chiudi tutto»', l_show_hint: 'Mostra suggerimento in basso',
+    l_sky: 'Mostra il cielo con il meteo', l_language: 'Lingua', l_entity: 'Tenda', l_name: 'Nome (opzionale)',
+    l_invert: 'Inverti posizione (0 = aperta)', l_travel_time: 'Tempo di corsa da aperta a chiusa (secondi)', l_fabric: 'Tipo di tessuto',
+    bg_dark: 'Scuro con bagliore', bg_theme: 'Tema della dashboard',
+    fab_dimout: 'Filtrante (oscura in parte)', fab_blackout: 'Oscurante (oscura completamente)',
+    lang_auto: 'Automatico (lingua di Home Assistant)',
+    ed_blind: 'Tenda {n}', ed_up: 'Su', ed_down: 'Giù', ed_delete: 'Rimuovi', ed_color: 'Colore personalizzato', ed_add: '+ Aggiungi tenda',
+  },
+};
+
+function gbcLang(hass, wanted) {
+  let l = wanted && wanted !== 'auto'
+    ? wanted
+    : ((hass && ((hass.locale && hass.locale.language) || hass.language)) || (typeof navigator !== 'undefined' && navigator.language) || 'en');
+  l = String(l).toLowerCase().split(/[-_]/)[0];
+  return GBC_I18N[l] ? l : 'en';
+}
+
+function gbcT(lang, key, vars) {
+  let s = (GBC_I18N[lang] && GBC_I18N[lang][key]) || GBC_I18N.en[key] || key;
+  if (vars) Object.keys(vars).forEach((k) => { s = s.split('{' + k + '}').join(vars[k]); });
+  return s;
+}
 
 // cover supported_features bits
 const GBC_SET_POSITION = 4;
@@ -290,7 +442,6 @@ class GlowBlindsCard extends HTMLElement {
     const covers = ids.filter((e) => e.startsWith('cover.')).slice(0, 2);
     const weather = ids.find((e) => e.startsWith('weather.'));
     const cfg = {
-      title: 'Rolgordijnen',
       blinds: (covers.length ? covers : ['cover.voorbeeld']).map((e, i) => ({ entity: e, color: GBC_PALETTE[i % GBC_PALETTE.length] })),
     };
     if (weather) cfg.weather = weather;
@@ -298,17 +449,17 @@ class GlowBlindsCard extends HTMLElement {
   }
 
   setConfig(config) {
+    const lang = gbcLang(this._hass, config && config.language);
     if (!config || !Array.isArray(config.blinds) || config.blinds.length === 0) {
-      throw new Error('Voeg minstens één rolgordijn toe onder "blinds".');
+      throw new Error(gbcT(lang, 'err_no_blinds'));
     }
     const blinds = config.blinds.map((b, i) => {
       const o = typeof b === 'string' ? { entity: b } : { ...b };
-      if (!o.entity) throw new Error('Rolgordijn ' + (i + 1) + ' heeft geen "entity".');
+      if (!o.entity) throw new Error(gbcT(lang, 'err_no_entity', { n: i + 1 }));
       if (!o.color) o.color = GBC_PALETTE[i % GBC_PALETTE.length];
       return o;
     });
     this._config = {
-      title: 'Rolgordijnen',
       sun: 'sun.sun',
       glow: 22,
       show_all_buttons: true,
@@ -334,6 +485,7 @@ class GlowBlindsCard extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
     if (!this._config) return;
+    if (this._built && this._builtLang !== this._lang()) this._built = false;
     if (!this._built) this._build();
     this._update();
   }
@@ -349,6 +501,14 @@ class GlowBlindsCard extends HTMLElement {
 
   getGridOptions() {
     return { columns: 12, min_columns: 6, rows: 'auto' };
+  }
+
+  _lang() {
+    return gbcLang(this._hass, this._config && this._config.language);
+  }
+
+  _t(key, vars) {
+    return gbcT(this._lang(), key, vars);
   }
 
   _cols() {
@@ -368,6 +528,9 @@ class GlowBlindsCard extends HTMLElement {
   _build() {
     const c = this._config;
     const cols = this._cols();
+    const t = (k, v) => this._t(k, v);
+    this._builtLang = this._lang();
+    const title = c.title === undefined || c.title === null ? t('title') : c.title;
     const blindsHtml = c.blinds.map((b, i) => `
       <div class="blind${(b.fabric || c.fabric) === 'blackout' ? ' blackout' : ''}" data-i="${i}" style="--c:${b.color};--rgb:${gbcRgb(b.color)}">
         <div class="win" data-i="${i}" tabindex="0" role="slider" aria-valuemin="0" aria-valuemax="100" style="height:${this._winHeight()}px">
@@ -385,7 +548,7 @@ class GlowBlindsCard extends HTMLElement {
           <span class="name"></span>
           <span class="status"></span>
         </div>
-        <button class="stop" type="button" data-i="${i}">${ICON_STOP}<span>Stop</span></button>
+        <button class="stop" type="button" data-i="${i}">${ICON_STOP}<span>${t('stop')}</span></button>
       </div>`).join('');
 
     this.shadowRoot.innerHTML = `
@@ -395,22 +558,22 @@ class GlowBlindsCard extends HTMLElement {
         <div class="wrap">
           <div class="head">
             <div class="titles">
-              ${c.title ? `<h2></h2>` : ''}
+              ${title ? `<h2></h2>` : ''}
               <span class="summary"></span>
             </div>
             ${c.show_all_buttons ? `
             <div class="btns">
-              <button class="round all-open" type="button" aria-label="Alles open" title="Alles open">${ICON_UP}</button>
-              <button class="round all-close" type="button" aria-label="Alles dicht" title="Alles dicht">${ICON_DOWN}</button>
+              <button class="round all-open" type="button" aria-label="${t('open_all')}" title="${t('open_all')}">${ICON_UP}</button>
+              <button class="round all-close" type="button" aria-label="${t('close_all')}" title="${t('close_all')}">${ICON_DOWN}</button>
             </div>` : ''}
           </div>
           <div class="grid" style="grid-template-columns:repeat(${cols}, minmax(0, 1fr))">${blindsHtml}</div>
-          ${c.show_hint ? '<p class="hint">Sleep in een raam om het gordijn te verplaatsen</p>' : ''}
+          ${c.show_hint ? '<p class="hint">' + t('hint') + '</p>' : ''}
         </div>
       </ha-card>`;
 
     const h2 = this.shadowRoot.querySelector('h2');
-    if (h2) h2.textContent = c.title;
+    if (h2) h2.textContent = title;
 
     this.shadowRoot.querySelectorAll('.win').forEach((win) => this._bindWindow(win));
     this.shadowRoot.querySelectorAll('.stop').forEach((btn) => {
@@ -646,9 +809,10 @@ class GlowBlindsCard extends HTMLElement {
 
     const summary = this.shadowRoot.querySelector('.summary');
     if (summary) {
-      const parts = [open + ' open'];
-      if (c.sky !== false && c.weather) parts.push(GBC_WEATHER_LABEL[weer]);
-      if (c.sky !== false) parts.push(phase);
+      const one = open === 1 || (open === 0 && this._lang() === 'fr');
+      const parts = [this._t(one ? 'n_open_one' : 'n_open', { n: open })];
+      if (c.sky !== false && c.weather) parts.push(this._t(weer));
+      if (c.sky !== false) parts.push(this._t(phase));
       summary.textContent = parts.join(' · ');
     }
   }
@@ -672,9 +836,9 @@ class GlowBlindsCard extends HTMLElement {
       win.classList.add('unavailable');
       win.classList.remove('dragging', 'has-target');
       pctEl.textContent = '–';
-      statusEl.textContent = st ? 'Niet beschikbaar' : 'Entiteit niet gevonden';
+      statusEl.textContent = this._t(st ? 'unavailable' : 'not_found');
       stopEl.classList.remove('active');
-      win.setAttribute('aria-label', name + ', niet beschikbaar');
+      win.setAttribute('aria-label', this._t('aria_unavailable', { name }));
       return;
     }
     win.classList.remove('unavailable');
@@ -744,23 +908,23 @@ class GlowBlindsCard extends HTMLElement {
     pctEl.textContent = pos + '%';
 
     let status;
-    if (dragging) status = 'naar ' + target + '%';
-    else if (st.state === 'opening') status = 'gaat open…';
-    else if (st.state === 'closing') status = 'gaat dicht…';
-    else if (justStopped) status = 'gestopt';
-    else if (target !== null) status = 'naar ' + target + '%';
-    else if (moving) status = 'beweegt…';
-    else if (pos >= 100) status = 'Open';
-    else if (pos <= 0) status = 'Dicht';
-    else status = 'Half open';
+    if (dragging) status = this._t('to', { p: target });
+    else if (st.state === 'opening') status = this._t('opening');
+    else if (st.state === 'closing') status = this._t('closing');
+    else if (justStopped) status = this._t('stopped');
+    else if (target !== null) status = this._t('to', { p: target });
+    else if (moving) status = this._t('moving');
+    else if (pos >= 100) status = this._t('open');
+    else if (pos <= 0) status = this._t('closed');
+    else status = this._t('half');
     statusEl.textContent = status;
 
     stopEl.hidden = !(feat & GBC_STOP) && feat !== 0;
     stopEl.classList.toggle('active', moving);
-    stopEl.setAttribute('aria-label', 'Stop ' + name);
+    stopEl.setAttribute('aria-label', this._t('aria_stop', { name }));
 
     win.setAttribute('aria-valuenow', String(pos));
-    win.setAttribute('aria-label', name + ', ' + pos + ' procent open');
+    win.setAttribute('aria-label', this._t('aria_pos', { name, p: pos }));
   }
 }
 
@@ -768,25 +932,9 @@ class GlowBlindsCard extends HTMLElement {
 /*  Visuele editor                                                     */
 /* ------------------------------------------------------------------ */
 
-const GBC_LABELS = {
-  title: 'Titel',
-  weather: 'Weer-entiteit (voor de lucht)',
-  sun: 'Zon-entiteit (dag/schemer/nacht)',
-  glow: 'Sterkte van de gloed',
-  columns: 'Kolommen (leeg = automatisch)',
-  height: 'Hoogte van de ramen in px (leeg = automatisch)',
-  background: 'Achtergrond',
-  show_all_buttons: 'Knoppen "alles open/dicht" tonen',
-  show_hint: 'Uitleg onderaan tonen',
-  sky: 'Lucht met weer tonen',
-  entity: 'Rolgordijn',
-  name: 'Naam (optioneel)',
-  invert: 'Positie omkeren (0 = open)',
-  travel_time: 'Looptijd van open tot dicht (seconden)',
-  fabric: 'Soort stof',
-};
-
-const GBC_MAIN_SCHEMA = [
+function gbcMainSchema(lang) {
+  const t = (k) => gbcT(lang, k);
+  return [
   { name: 'title', selector: { text: {} } },
   { name: 'weather', selector: { entity: { domain: 'weather' } } },
   { name: 'sun', selector: { entity: { domain: 'sun' } } },
@@ -801,8 +949,8 @@ const GBC_MAIN_SCHEMA = [
     name: 'background', selector: {
       select: {
         mode: 'dropdown', options: [
-          { value: 'dark', label: 'Donker met gloed' },
-          { value: 'theme', label: 'Thema van je dashboard' },
+          { value: 'dark', label: t('bg_dark') },
+          { value: 'theme', label: t('bg_theme') },
         ],
       },
     },
@@ -814,9 +962,20 @@ const GBC_MAIN_SCHEMA = [
       { name: 'show_hint', selector: { boolean: {} } },
     ],
   },
+  {
+    name: 'language', selector: {
+      select: {
+        mode: 'dropdown', options: [{ value: 'auto', label: t('lang_auto') }]
+          .concat(Object.keys(GBC_LANG_NAMES).map((k) => ({ value: k, label: GBC_LANG_NAMES[k] }))),
+      },
+    },
+  },
 ];
+}
 
-const GBC_BLIND_SCHEMA = [
+function gbcBlindSchema(lang) {
+  const t = (k) => gbcT(lang, k);
+  return [
   { name: 'entity', selector: { entity: { domain: 'cover' } } },
   { name: 'name', selector: { text: {} } },
   { name: 'travel_time', selector: { number: { min: 3, max: 300, mode: 'box', unit_of_measurement: 's' } } },
@@ -824,14 +983,15 @@ const GBC_BLIND_SCHEMA = [
     name: 'fabric', selector: {
       select: {
         mode: 'dropdown', options: [
-          { value: 'dimout', label: 'Deels verduisterend' },
-          { value: 'blackout', label: 'Volledig verduisterend' },
+          { value: 'dimout', label: t('fab_dimout') },
+          { value: 'blackout', label: t('fab_blackout') },
         ],
       },
     },
   },
   { name: 'invert', selector: { boolean: {} } },
 ];
+}
 
 const GBC_EDITOR_STYLE = `
   .main { margin-bottom: 16px; }
@@ -869,6 +1029,11 @@ class GlowBlindsCardEditor extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
+    if (this._config && gbcLang(hass, this._config.language) !== this._lang) {
+      this._sig = null;
+      this._render();
+      return;
+    }
     this.shadowRoot.querySelectorAll('ha-form').forEach((f) => { f.hass = hass; });
   }
 
@@ -880,8 +1045,11 @@ class GlowBlindsCardEditor extends HTMLElement {
   _render() {
     if (!this._config) return;
     const c = this._config;
-    const sig = c.blinds.length + '|' + c.blinds.map((b) => b.color).join(',');
-    const label = (s) => GBC_LABELS[s.name] || s.name;
+    const lang = gbcLang(this._hass, c.language);
+    this._lang = lang;
+    const t = (k, v) => gbcT(lang, k, v);
+    const label = (s) => gbcT(lang, 'l_' + s.name);
+    const sig = lang + '|' + c.blinds.length + '|' + c.blinds.map((b) => b.color).join(',');
 
     if (sig === this._sig) {
       // alleen data bijwerken, zodat de focus in tekstvelden blijft
@@ -899,19 +1067,20 @@ class GlowBlindsCardEditor extends HTMLElement {
     const main = document.createElement('ha-form');
     main.className = 'main';
     main.hass = this._hass;
-    main.schema = GBC_MAIN_SCHEMA;
+    main.schema = gbcMainSchema(lang);
     main.data = this._mainData();
     main.computeLabel = label;
     main.addEventListener('value-changed', (e) => {
       const v = { ...e.detail.value };
       ['columns', 'height'].forEach((k) => { if (v[k] === '' || v[k] === null || v[k] === undefined) delete v[k]; });
       ['weather'].forEach((k) => { if (!v[k]) delete v[k]; });
+      if (!v.language || v.language === 'auto') delete v.language;
       this._emit({ ...this._config, ...v, blinds: this._config.blinds });
     });
     this.shadowRoot.appendChild(main);
 
     const h3 = document.createElement('h3');
-    h3.textContent = 'Rolgordijnen';
+    h3.textContent = t('title');
     this.shadowRoot.appendChild(h3);
 
     c.blinds.forEach((b, i) => {
@@ -922,12 +1091,12 @@ class GlowBlindsCardEditor extends HTMLElement {
 
       const row = document.createElement('div');
       row.className = 'row';
-      row.innerHTML = `<span class="label">Gordijn ${i + 1}</span>
+      row.innerHTML = `<span class="label">${t('ed_blind', { n: i + 1 })}</span>
         <span class="swatches">${GBC_PALETTE.map((p) => `<button type="button" class="sw${p.toLowerCase() === color.toLowerCase() ? ' on' : ''}" style="background:${p}" data-col="${p}" title="${p}"></button>`).join('')}</span>
-        <input type="color" value="${/^#[0-9a-f]{6}$/i.test(color) ? color : '#b9a8ff'}" title="Eigen kleur">
-        <button type="button" class="up" title="Omhoog" ${i === 0 ? 'disabled' : ''}>↑</button>
-        <button type="button" class="down" title="Omlaag" ${i === c.blinds.length - 1 ? 'disabled' : ''}>↓</button>
-        <button type="button" class="del" title="Verwijderen">Verwijderen</button>`;
+        <input type="color" value="${/^#[0-9a-f]{6}$/i.test(color) ? color : '#b9a8ff'}" title="${t('ed_color')}">
+        <button type="button" class="up" title="${t('ed_up')}" ${i === 0 ? 'disabled' : ''}>↑</button>
+        <button type="button" class="down" title="${t('ed_down')}" ${i === c.blinds.length - 1 ? 'disabled' : ''}>↓</button>
+        <button type="button" class="del" title="${t('ed_delete')}">${t('ed_delete')}</button>`;
       box.appendChild(row);
 
       row.querySelectorAll('.sw').forEach((sw) => sw.addEventListener('click', () => this._patch(i, { color: sw.dataset.col })));
@@ -944,7 +1113,7 @@ class GlowBlindsCardEditor extends HTMLElement {
       f.className = 'bf';
       f.dataset.i = String(i);
       f.hass = this._hass;
-      f.schema = GBC_BLIND_SCHEMA;
+      f.schema = gbcBlindSchema(lang);
       f.data = b;
       f.computeLabel = label;
       f.addEventListener('value-changed', (e) => {
@@ -963,7 +1132,7 @@ class GlowBlindsCardEditor extends HTMLElement {
     const add = document.createElement('button');
     add.type = 'button';
     add.className = 'add';
-    add.textContent = '+ Rolgordijn toevoegen';
+    add.textContent = t('ed_add');
     add.addEventListener('click', () => {
       const used = new Set(this._config.blinds.map((b) => b.entity));
       const free = Object.keys((this._hass && this._hass.states) || {}).find((e) => e.startsWith('cover.') && !used.has(e));
@@ -978,7 +1147,8 @@ class GlowBlindsCardEditor extends HTMLElement {
   _mainData() {
     const c = this._config;
     return {
-      title: c.title ?? 'Rolgordijnen',
+      title: c.title ?? gbcT(this._lang || 'en', 'title'),
+      language: c.language ?? 'auto',
       weather: c.weather,
       sun: c.sun ?? 'sun.sun',
       glow: c.glow ?? 22,
@@ -1021,7 +1191,7 @@ if (!window.customCards.some((c) => c.type === 'glow-blinds-card')) {
   window.customCards.push({
     type: 'glow-blinds-card',
     name: 'Glow Blinds Card',
-    description: 'Rolgordijnen als verticale ramen: slepen, stop, live positie en een lucht die het weer volgt.',
+    description: gbcT(gbcLang(null), 'description'),
     preview: true,
     documentationURL: 'https://github.com/stijnleroy/glow-blinds-card',
   });
