@@ -8,7 +8,7 @@
  * Licentie: MIT
  */
 
-const GBC_VERSION = '1.0.2';
+const GBC_VERSION = '1.0.3';
 
 const GBC_PALETTE = ['#FFB899', '#B9A8FF', '#8FE3B8', '#8EC5FF', '#FFE08A', '#FF9FBF'];
 
@@ -188,9 +188,16 @@ const GBC_STYLE = `
   .fabric {
     height: calc(14px + (100% - 14px) * var(--closed));
     background-color: var(--c);
-    background-image: repeating-linear-gradient(180deg, rgba(255,255,255,0.14) 0 2px, rgba(0,0,0,0) 2px 16px);
-    opacity: 0.92;
+    background-image: repeating-linear-gradient(180deg, rgba(255,255,255,0.16) 0 2px, rgba(0,0,0,0) 2px 16px);
+    opacity: 0.72;
     transition: height 0.3s linear;
+  }
+  /* volledig verduisterend: dichte stof, geen lucht zichtbaar */
+  .blind.blackout .fabric {
+    opacity: 1;
+    background-image:
+      linear-gradient(rgba(0,0,0,0.18), rgba(0,0,0,0.18)),
+      repeating-linear-gradient(180deg, rgba(255,255,255,0.08) 0 2px, rgba(0,0,0,0) 2px 16px);
   }
   .rail {
     position: absolute; left: 5px; right: 5px; height: 7px; border-radius: 4px; pointer-events: none;
@@ -261,6 +268,7 @@ class GlowBlindsCard extends HTMLElement {
     this._moves = {};      // bewegingen gestart via de kaart
     this._last = {};       // laatst geziene positie + tijdstip van laatste verandering
     this._stoppedAt = {};  // tijdstip van laatste druk op stop
+    this._disp = {};       // getoonde positie per gordijn
     this._tick = null;
   }
 
@@ -314,6 +322,7 @@ class GlowBlindsCard extends HTMLElement {
     this._moves = {};
     this._last = {};
     this._stoppedAt = {};
+    this._disp = {};
     this._built = false;
     this._skyKey = null;
     if (this._hass) {
@@ -360,7 +369,7 @@ class GlowBlindsCard extends HTMLElement {
     const c = this._config;
     const cols = this._cols();
     const blindsHtml = c.blinds.map((b, i) => `
-      <div class="blind" data-i="${i}" style="--c:${b.color};--rgb:${gbcRgb(b.color)}">
+      <div class="blind${(b.fabric || c.fabric) === 'blackout' ? ' blackout' : ''}" data-i="${i}" style="--c:${b.color};--rgb:${gbcRgb(b.color)}">
         <div class="win" data-i="${i}" tabindex="0" role="slider" aria-valuemin="0" aria-valuemax="100" style="height:${this._winHeight()}px">
           <div class="sky"></div>
           <div class="bar"></div>
@@ -526,11 +535,12 @@ class GlowBlindsCard extends HTMLElement {
   // hoelang de beweging duurt op basis van de looptijd van het gordijn.
   _startMove(i, target) {
     const b = this._config.blinds[i];
-    const from = this._getPos(i) ?? 0;
+    const raw = this._getPos(i) ?? 0;
+    const from = this._disp[i] !== undefined ? this._disp[i] : raw;
     const travel = Number(b.travel_time || this._config.travel_time || 30);
-    const est = Math.max(3000, (travel * 1000 * Math.abs(target - from)) / 100 + 1500);
+    const dur = Math.max(1000, (travel * 1000 * Math.abs(target - from)) / 100);
     const now = Date.now();
-    this._moves[i] = { start: now, until: now + est, sawMotion: false };
+    this._moves[i] = { start: now, until: now + Math.max(3000, dur + 1500), dur, from, target, sawMotion: false, trusted: false };
     delete this._stoppedAt[i];
     this._ensureTick();
   }
@@ -669,7 +679,7 @@ class GlowBlindsCard extends HTMLElement {
     }
     win.classList.remove('unavailable');
 
-    const pos = this._getPos(i) ?? 0;
+    const raw = this._getPos(i) ?? 0;
     const feat = st.attributes.supported_features || 0;
 
     const now = Date.now();
@@ -679,24 +689,37 @@ class GlowBlindsCard extends HTMLElement {
     // ook als de motor geen "opening/closing" meldt
     let last = this._last[i];
     if (!last) {
-      last = this._last[i] = { pos, at: 0 };
-    } else if (last.pos !== pos) {
-      last.pos = pos;
+      last = this._last[i] = { pos: raw, at: 0 };
+    } else if (last.pos !== raw) {
+      last.pos = raw;
       last.at = now;
       this._ensureTick();
     }
     if (motorState) this._ensureTick();
 
     // beweging die via de kaart gestart is
+    // Sommige integraties zetten de positie meteen op de gekozen waarde
+    // (optimistisch) en melden pas daarna de echte posities. Dan zou het
+    // gordijn op de kaart eerst naar het doel springen, terug naar de
+    // beginpositie gaan en pas dan live bewegen. Zolang we geen echte
+    // tussenwaarde gezien hebben, tonen we daarom een geschatte positie.
     const mv = this._moves[i];
+    let pos = raw;
     if (mv) {
       if (motorState) mv.sawMotion = true;
-      const tgtNow = this._targets[i];
-      const reached = tgtNow && Math.abs(tgtNow.pos - pos) <= 1 && now - last.at > 1500;
-      if (now > mv.until || (mv.sawMotion && !motorState && now - last.at > 1000) || reached) {
+      if (!mv.trusted && raw !== mv.from && raw !== mv.target) mv.trusted = true;
+      if (!mv.trusted && raw === mv.target && mv.target !== mv.from) {
+        const f = gbcClamp((now - mv.start - 1200) / mv.dur, 0, 1);
+        pos = Math.round(mv.from + (mv.target - mv.from) * f);
+      }
+      const reached = mv.trusted && Math.abs(mv.target - raw) <= 1 && now - last.at > 1500;
+      const motorDone = mv.sawMotion && !motorState && now - last.at > 1000;
+      if (now > mv.until || reached || motorDone) {
         delete this._moves[i];
+        pos = raw;
       }
     }
+    this._disp[i] = pos;
 
     // doel (stippellijn) opruimen als het bereikt is of de beweging voorbij is
     const tgt = this._targets[i];
@@ -760,6 +783,7 @@ const GBC_LABELS = {
   name: 'Naam (optioneel)',
   invert: 'Positie omkeren (0 = open)',
   travel_time: 'Looptijd van open tot dicht (seconden)',
+  fabric: 'Soort stof',
 };
 
 const GBC_MAIN_SCHEMA = [
@@ -796,6 +820,16 @@ const GBC_BLIND_SCHEMA = [
   { name: 'entity', selector: { entity: { domain: 'cover' } } },
   { name: 'name', selector: { text: {} } },
   { name: 'travel_time', selector: { number: { min: 3, max: 300, mode: 'box', unit_of_measurement: 's' } } },
+  {
+    name: 'fabric', selector: {
+      select: {
+        mode: 'dropdown', options: [
+          { value: 'dimout', label: 'Deels verduisterend' },
+          { value: 'blackout', label: 'Volledig verduisterend' },
+        ],
+      },
+    },
+  },
   { name: 'invert', selector: { boolean: {} } },
 ];
 

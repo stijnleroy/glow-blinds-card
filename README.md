@@ -64,6 +64,7 @@ blinds:
 | `sky` | `true` | `false` toont een effen donkere lucht. |
 | `show_all_buttons` | `true` | Knoppen voor alles open/dicht tonen. |
 | `show_hint` | `true` | Uitleg "Sleep in een raam…" onderaan tonen. |
+| `fabric` | `dimout` | Standaard soort stof voor alle gordijnen: `dimout` of `blackout`. |
 | `travel_time` | `30` | Standaard looptijd in seconden voor alle gordijnen (zie hieronder). |
 
 ### Opties per gordijn
@@ -73,6 +74,7 @@ blinds:
 | `entity` | De `cover`-entiteit (verplicht). |
 | `name` | Naam onder het raam. Standaard de naam van de entiteit. |
 | `color` | Kleur van de stof en de gloed, bv. `"#8FE3B8"`. |
+| `fabric` | `dimout` = deels verduisterend (je ziet de lucht nog wat door de stof), `blackout` = volledig verduisterend. Standaard `dimout`. |
 | `invert` | `true` als je gordijn 0 = open en 100 = dicht rapporteert. |
 | `travel_time` | Hoeveel seconden het gordijn nodig heeft van helemaal open tot helemaal dicht (standaard 30). Wordt gebruikt om de stopknop te laten oplichten bij motoren die niet melden dat ze bewegen. |
 
